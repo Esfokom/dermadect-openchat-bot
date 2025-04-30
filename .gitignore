@@ -2,3 +2,5 @@
 private_key.pem
 node_modules
 dist
+.vercel
+.env.prod

@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { WithBotClient } from "../types";
-import Greet from "../commands/greet";
+import Game from "../commands/game";
 import Ping from "../commands/ping";
 import Prompt from "../commands/prompt";
 
@@ -16,8 +16,8 @@ export default async function executeCommand(req: Request, res: Response) {
     const client = req.botClient;
 
     switch (client.commandName) {
-        case "greet":
-            Greet(req, res, client);
+        case "game":
+            Game(req, res, client);
             break;
         case "ping":
             Ping(req, res, client);

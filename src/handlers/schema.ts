@@ -17,10 +17,10 @@ export default function schema(req: Request, res: Response) {
                 params: []
             },
             {
-                name: "greet",
+                name: "game",
                 default_role: "Participant",
-                description: "Give a greeting",
-                placeholder: "Processing greeting",
+                description: "This is a game about anatomy. 5 questions will be asked. Enter \"start game\" to start the game",
+                placeholder: "Derma is thinking...",
                 permissions: Permissions.encodePermissions({
                     chat: [],
                     community: [],
@@ -28,13 +28,13 @@ export default function schema(req: Request, res: Response) {
                 }),
                 params: [
                     {
-                        name: "Name",
-                        description: "Name of the person to greet",
-                        placeholder: "Enter name",
+                        name: "message",
+                        description: "Enter your command or response to the question",
+                        placeholder: "Enter message",
                         required: true,
                         param_type: {
                             StringParam: {
-                                min_length: 1,
+                                min_length: 0,
                                 max_length: 100,
                                 choices: [],
                                 multi_line: false

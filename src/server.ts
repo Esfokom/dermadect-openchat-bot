@@ -2,9 +2,9 @@ import "dotenv/config";
 import express, { NextFunction, Request, Response } from "express";
 import schema from "./handlers/schema";
 import cors from "cors";
-import executeCommand from "./handlers/executeCommand";
 import { accessTokenNotFound, BadRequestError, BotClient, BotClientFactory } from "@open-ic/openchat-botclient-ts";
 import { WithBotClient } from "./types";
+import executeCommand from "./handlers/executeCommand";
 
 const app = express();
 app.use(cors());
@@ -18,7 +18,9 @@ const factory = new BotClientFactory({
     openStorageCanisterId: process.env.STORAGE_INDEX_CANISTER!,
 });
 
-
+app.get("/", (req: Request, res: Response) => {
+    res.send("Welcome to Dermadect OpenChat Api");
+});
 app.get("/bot_definition", schema);
 app.post("/execute_command", createCommandBotClient(factory), executeCommand);
 
@@ -47,4 +49,6 @@ function createCommandBotClient(factory: BotClientFactory) {
         }
     }
 }
+
+export default app;
 
