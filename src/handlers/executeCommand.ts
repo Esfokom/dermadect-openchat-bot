@@ -1,8 +1,10 @@
 import { Request, Response } from "express";
 import { WithBotClient } from "../types";
 import Game from "../commands/game";
-import Ping from "../commands/ping";
+import BotInformation from "../commands/info";
 import Prompt from "../commands/prompt";
+import HealthJoke from "../commands/health_joke";
+import HealthTip from "../commands/health_tip";
 
 function hasBotClient(req: Request): req is WithBotClient {
     return (req as WithBotClient).botClient !== undefined;
@@ -19,12 +21,19 @@ export default async function executeCommand(req: Request, res: Response) {
         case "game":
             Game(req, res, client);
             break;
-        case "ping":
-            Ping(req, res, client);
+        case "info":
+            BotInformation(req, res, client);
             break;
         case "prompt":
             Prompt(req, res, client);
             break;
+        case "health_joke":
+            HealthJoke(req, res, client);
+            break;
+        case "health_tip":
+            HealthTip(req, res, client);
+            break;
+
         default:
             break;
     }

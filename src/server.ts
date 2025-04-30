@@ -10,7 +10,6 @@ const app = express();
 app.use(cors());
 const PORT = process.env.PORT || 3000;
 
-
 const factory = new BotClientFactory({
     identityPrivateKey: process.env.IDENTITY_PRIVATE!,
     openchatPublicKey: process.env.OC_PUBLIC!,

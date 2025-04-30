@@ -3,12 +3,12 @@ import { Request, Response } from "express";
 
 export default function schema(req: Request, res: Response) {
     res.status(200).json({
-        description: " This is a schema endpoint",
+        description: "Dermadect bot is a healthcare bot",
         commands: [
             {
-                name: "ping",
+                name: "info",
                 default_role: "Participant",
-                description: "Ping the server",
+                description: "Get information about Dermadect bot and its commands",
                 permissions: Permissions.encodePermissions({
                     chat: [],
                     community: [],
@@ -70,6 +70,30 @@ export default function schema(req: Request, res: Response) {
                     }
                 ],
                 direct_messages: true
+            },
+            {
+                name: "health_tip",
+                default_role: "Participant",
+                description: "Get information about Dermadect",
+                placeholder: "Fetching health tip...",
+                permissions: Permissions.encodePermissions({
+                    chat: [],
+                    community: [],
+                    message: ["Text"],
+                }),
+                params: []
+            },
+            {
+                name: "health_joke",
+                default_role: "Participant",
+                description: "Get information about Dermadect",
+                placeholder: "Fetching health joke...",
+                permissions: Permissions.encodePermissions({
+                    chat: [],
+                    community: [],
+                    message: ["Text"],
+                }),
+                params: []
             },
         ]
     });
