@@ -1671,3 +1671,59 @@ google.api_core.exceptions.ResourceExhausted: 429 You exceeded your current quot
 2025-04-30 15:18:05,770 - main - INFO - Received game request from user 1234
 2025-04-30 15:18:20,325 - main - INFO - Received game request from user 1234
 2025-04-30 15:18:45,370 - main - INFO - Received game request from user 1234
+2025-04-30 15:43:06,602 - services.firebase_service - ERROR - Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON: Expecting value: line 1 column 1 (char 0)
+2025-04-30 15:44:50,899 - services.firebase_service - INFO - Firebase initialized successfully
+2025-04-30 15:45:35,137 - main - INFO - Received game request from user 1234
+2025-04-30 15:45:37,604 - agents.game_agent - INFO - Starting to generate 5 questions
+2025-04-30 15:45:37,607 - agents.game_agent - INFO - Generating 5 questions in a single call
+2025-04-30 15:45:41,531 - agents.game_agent - DEBUG - LLM raw response: ```json
+[
+  {
+    "text": "Which organ is primarily responsible for filtering waste products from the blood?",
+    "choices": ["Liver", "Kidney", "Spleen", "Pancreas"],
+    "correct_answer": "Kidney",
+    "category": "body_parts",
+    "difficulty": "easy",
+    "explanation": "The kidneys filter waste products from the blood and produce urine."
+  },
+  {
+    "text": "What is the main function of the small intestine?",
+    "choices": ["Absorbing water", "Storing waste", "Absorbing nutrients", "Producing bile"],
+    "correct_answer": "Absorbing nutrients",
+    "category": "body_parts",
+    "difficulty": "medium",
+    "explanation": "The small intestine is the primary site for nutrient absorption into the bloodstream."
+  },
+  {
+    "text": "The heart is primarily composed of what type of tissue?",
+    "choices": ["Epithelial tissue", "Connective tissue", "Nervous tissue", "Muscle tissue"],
+    "correct_answer": "Muscle tissue",
+    "category": "body_parts",
+    "difficulty": "easy",
+    "explanation": "The heart is primarily made of cardiac muscle, which allows it to contract and pump blood."
+  },
+  {
+    "text": "Which part of the eye is responsible for focusing light onto the retina?",
+    "choices": ["Iris", "Pupil", "Lens", "Sclera"],
+    "correct_answer": "Lens",
+    "category": "body_parts",
+    "difficulty": "medium",
+    "explanation": "The lens changes shape to focus light rays onto the retina, allowing us to see clearly at different distances."
+  },
+  {
+    "text": "What is the primary function of the lungs?",
+    "choices": ["Filtering blood", "Producing hormones", "Exchanging gases", "Storing energy"],
+    "correct_answer": "Exchanging gases",
+    "category": "body_parts",
+    "difficulty": "easy",
+    "explanation": "The lungs facilitate the exchange of oxygen and carbon dioxide between the air and the bloodstream."
+  }
+]
+```
+2025-04-30 15:45:41,534 - agents.game_agent - DEBUG - Parsed questions data: [{'text': 'Which organ is primarily responsible for filtering waste products from the blood?', 'choices': ['Liver', 'Kidney', 'Spleen', 'Pancreas'], 'correct_answer': 'Kidney', 'category': 'body_parts', 'difficulty': 'easy', 'explanation': 'The kidneys filter waste products from the blood and produce urine.'}, {'text': 'What is the main function of the small intestine?', 'choices': ['Absorbing water', 'Storing waste', 'Absorbing nutrients', 'Producing bile'], 'correct_answer': 'Absorbing nutrients', 'category': 'body_parts', 'difficulty': 'medium', 'explanation': 'The small intestine is the primary site for nutrient absorption into the bloodstream.'}, {'text': 'The heart is primarily composed of what type of tissue?', 'choices': ['Epithelial tissue', 'Connective tissue', 'Nervous tissue', 'Muscle tissue'], 'correct_answer': 'Muscle tissue', 'category': 'body_parts', 'difficulty': 'easy', 'explanation': 'The heart is primarily made of cardiac muscle, which allows it to contract and pump blood.'}, {'text': 'Which part of the eye is responsible for focusing light onto the retina?', 'choices': ['Iris', 'Pupil', 'Lens', 'Sclera'], 'correct_answer': 'Lens', 'category': 'body_parts', 'difficulty': 'medium', 'explanation': 'The lens changes shape to focus light rays onto the retina, allowing us to see clearly at different distances.'}, {'text': 'What is the primary function of the lungs?', 'choices': ['Filtering blood', 'Producing hormones', 'Exchanging gases', 'Storing energy'], 'correct_answer': 'Exchanging gases', 'category': 'body_parts', 'difficulty': 'easy', 'explanation': 'The lungs facilitate the exchange of oxygen and carbon dioxide between the air and the bloodstream.'}]
+2025-04-30 15:45:41,541 - agents.game_agent - INFO - Successfully generated question: Which organ is primarily responsible for filtering waste products from the blood?
+2025-04-30 15:45:41,547 - agents.game_agent - INFO - Successfully generated question: What is the main function of the small intestine?
+2025-04-30 15:45:41,550 - agents.game_agent - INFO - Successfully generated question: The heart is primarily composed of what type of tissue?
+2025-04-30 15:45:41,558 - agents.game_agent - INFO - Successfully generated question: Which part of the eye is responsible for focusing light onto the retina?
+2025-04-30 15:45:41,565 - agents.game_agent - INFO - Successfully generated question: What is the primary function of the lungs?
+2025-04-30 15:45:41,573 - agents.game_agent - INFO - Successfully generated 5 questions

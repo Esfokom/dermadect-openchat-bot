@@ -6,16 +6,26 @@ from datetime import datetime
 from models.schemas import UserContext, HealthMetric
 from typing import Optional, List, Dict, Any
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 
 class FirebaseService:
     def __init__(self):
         if not firebase_admin._apps:
-            cred = firebase_admin.credentials.Certificate(
-                os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
-            )
-            firebase_admin.initialize_app(cred)
+            try:
+                # Get service account JSON from file
+                service_account_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "service-account.json")
+                if not os.path.exists(service_account_path):
+                    raise ValueError(f"Service account file not found at {service_account_path}")
+                
+                # Initialize Firebase with the service account
+                cred = firebase_admin.credentials.Certificate(service_account_path)
+                firebase_admin.initialize_app(cred)
+                logger.info("Firebase initialized successfully")
+            except Exception as e:
+                logger.error(f"Failed to initialize Firebase: {str(e)}")
+                raise
         self.db: Client = firestore.client()
 
     async def get_user_data(self, user_id: str) -> Optional[Dict[str, Any]]:
