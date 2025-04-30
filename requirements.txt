@@ -1,2 +1,10 @@
 uvicorn
 fastapi
+langchain
+langgraph
+firebase-admin
+python-dotenv
+pydantic
+openai
+langchain-google-genai
+google-generativeai

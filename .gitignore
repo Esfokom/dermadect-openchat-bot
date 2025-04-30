@@ -1,0 +1,6 @@
+service-account.json
+.venv
+__pycache__/
+.vercel
+.env
+.idea
