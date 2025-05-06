@@ -7,23 +7,9 @@ from agents.game_agent import GameAgent
 import logging
 from typing import List, Optional
 from datetime import datetime
-import sys
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler('app.log')
-    ]
-)
-
-# Set log levels for specific modules
-logging.getLogger('agents.game_agent').setLevel(logging.DEBUG)
-logging.getLogger('services.game_service').setLevel(logging.DEBUG)
-logging.getLogger('services.firebase_service').setLevel(logging.INFO)
-
+# Initialize logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Healthcare Agent API")

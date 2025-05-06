@@ -7,32 +7,68 @@ from models.schemas import UserContext, HealthMetric
 from typing import Optional, List, Dict, Any
 import logging
 import json
+import asyncio
 
 logger = logging.getLogger(__name__)
 
 class FirebaseService:
+    _instance = None
+    _initialized = False
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(FirebaseService, cls).__new__(cls)
+        return cls._instance
+
     def __init__(self):
-        if not firebase_admin._apps:
-            try:
-                # Get service account JSON from file
-                service_account_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "service-account.json")
-                if not os.path.exists(service_account_path):
-                    raise ValueError(f"Service account file not found at {service_account_path}")
-                
-                # Initialize Firebase with the service account
-                cred = firebase_admin.credentials.Certificate(service_account_path)
-                firebase_admin.initialize_app(cred)
-                logger.info("Firebase initialized successfully")
-            except Exception as e:
-                logger.error(f"Failed to initialize Firebase: {str(e)}")
-                raise
-        self.db: Client = firestore.client()
+        if not self._initialized:
+            if not firebase_admin._apps:
+                try:
+                    # Get service account credentials from environment variables
+                    private_key = os.getenv("GOOGLE_PRIVATE_KEY")
+                    if private_key:
+                        # Ensure the private key has proper newlines
+                        private_key = private_key.replace("\\n", "\n")
+                        if not private_key.startswith("-----BEGIN PRIVATE KEY-----\n"):
+                            private_key = "-----BEGIN PRIVATE KEY-----\n" + private_key
+                        if not private_key.endswith("\n-----END PRIVATE KEY-----\n"):
+                            private_key = private_key + "\n-----END PRIVATE KEY-----\n"
+
+                    service_account_info = {
+                        "type": "service_account",
+                        "project_id": os.getenv("GOOGLE_PROJECT_ID"),
+                        "private_key_id": os.getenv("GOOGLE_PRIVATE_KEY_ID"),
+                        "private_key": private_key,
+                        "client_email": os.getenv("GOOGLE_CLIENT_EMAIL"),
+                        "client_id": os.getenv("GOOGLE_CLIENT_ID"),
+                        "auth_uri": os.getenv("GOOGLE_AUTH_URI"),
+                        "token_uri": os.getenv("GOOGLE_TOKEN_URI"),
+                        "auth_provider_x509_cert_url": os.getenv("GOOGLE_AUTH_PROVIDER_CERT_URL"),
+                        "client_x509_cert_url": os.getenv("GOOGLE_CLIENT_CERT_URL"),
+                        "universe_domain": "googleapis.com"
+                    }
+
+                    # Validate required fields
+                    required_fields = ["project_id", "private_key_id", "private_key", "client_email"]
+                    missing_fields = [field for field in required_fields if not service_account_info.get(field)]
+                    if missing_fields:
+                        raise ValueError(f"Missing required environment variables: {', '.join(missing_fields)}")
+
+                    # Initialize Firebase with the service account
+                    cred = firebase_admin.credentials.Certificate(service_account_info)
+                    firebase_admin.initialize_app(cred)
+                    logger.info("Firebase initialized successfully")
+                except Exception as e:
+                    logger.error(f"Failed to initialize Firebase: {str(e)}")
+                    raise
+            self.db: Client = firestore.client()
+            self._initialized = True
 
     async def get_user_data(self, user_id: str) -> Optional[Dict[str, Any]]:
         """Get user data including health metrics and context"""
         try:
             doc_ref = self.db.collection("users").document(user_id)
-            doc = doc_ref.get()
+            doc = await asyncio.to_thread(doc_ref.get)
             if doc.exists:
                 data = doc.to_dict()
                 return data

@@ -295,63 +295,111 @@ async def generate_response(state: WorkflowState) -> WorkflowState:
         }
 
 async def generate_health_tip(state: WorkflowState) -> WorkflowState:
-    """Generate a random health tip"""
-    try:
-        topic = state.get("context", {}).get("topic", "general health")
-        chain = (
-            {"input": lambda x: f"Generate a health tip about {topic}"}
-            | HEALTH_TIP_PROMPT
-            | state["llm"]
-        )
-        response = await chain.ainvoke(state)
-        return {
-            "messages": [AIMessage(content=response.content)],
-            "needs_more_info": False,
-            "followup_question": None,
-            "llm": state["llm"],
-            "user_id": state.get("user_id"),
-            "conversation_id": state.get("conversation_id"),
-            "context": state.get("context", {})
-        }
-    except Exception as e:
-        logger.error(f"Error generating health tip: {str(e)}", exc_info=True)
-        return {
-            "messages": [AIMessage(content="I couldn't generate a health tip right now. Please try again.")],
-            "needs_more_info": False,
-            "followup_question": None,
-            "llm": state["llm"],
-            "user_id": state.get("user_id"),
-            "conversation_id": state.get("conversation_id"),
-            "context": state.get("context", {})
-        }
+    """Generate a random health tip with retry logic"""
+    max_retries = 3
+    retry_delay = 1  # seconds
+    
+    for attempt in range(max_retries):
+        try:
+            topic = state.get("context", {}).get("topic", "general health")
+            chain = (
+                {"input": lambda x: f"Generate a health tip about {topic}"}
+                | HEALTH_TIP_PROMPT
+                | state["llm"]
+            )
+            response = await chain.ainvoke(state)
+            
+            # Validate response
+            if not response or not response.content:
+                raise ValueError("Empty response from LLM")
+                
+            return {
+                "messages": [AIMessage(content=response.content)],
+                "needs_more_info": False,
+                "followup_question": None,
+                "llm": state["llm"],
+                "user_id": state.get("user_id"),
+                "conversation_id": state.get("conversation_id"),
+                "context": state.get("context", {})
+            }
+        except Exception as e:
+            logger.error(f"Error generating health tip (attempt {attempt + 1}/{max_retries}): {str(e)}", exc_info=True)
+            if attempt < max_retries - 1:
+                import asyncio
+                await asyncio.sleep(retry_delay)
+                continue
+            else:
+                # Fallback tips for when the LLM fails
+                fallback_tips = [
+                    "Stay hydrated by drinking at least 8 glasses of water daily.",
+                    "Get 7-9 hours of quality sleep each night for optimal health.",
+                    "Take regular breaks from screens to protect your eyes and posture.",
+                    "Practice deep breathing exercises to reduce stress and improve focus.",
+                    "Include a variety of colorful fruits and vegetables in your diet."
+                ]
+                import random
+                fallback_tip = random.choice(fallback_tips)
+                return {
+                    "messages": [AIMessage(content=fallback_tip)],
+                    "needs_more_info": False,
+                    "followup_question": None,
+                    "llm": state["llm"],
+                    "user_id": state.get("user_id"),
+                    "conversation_id": state.get("conversation_id"),
+                    "context": state.get("context", {})
+                }
 
 async def generate_health_joke(state: WorkflowState) -> WorkflowState:
-    """Generate a health-related joke"""
-    try:
-        topic = state.get("context", {}).get("topic", "general health")
-        chain = (
-            {"input": lambda x: f"Generate a health joke about {topic}"}
-            | HEALTH_JOKE_PROMPT
-            | state["llm"]
-        )
-        response = await chain.ainvoke(state)
-        return {
-            "messages": [AIMessage(content=response.content)],
-            "needs_more_info": False,
-            "followup_question": None,
-            "llm": state["llm"],
-            "user_id": state.get("user_id"),
-            "conversation_id": state.get("conversation_id"),
-            "context": state.get("context", {})
-        }
-    except Exception as e:
-        logger.error(f"Error generating health joke: {str(e)}", exc_info=True)
-        return {
-            "messages": [AIMessage(content="I couldn't think of a joke right now. Please try again.")],
-            "needs_more_info": False,
-            "followup_question": None,
-            "llm": state["llm"],
-            "user_id": state.get("user_id"),
-            "conversation_id": state.get("conversation_id"),
-            "context": state.get("context", {})
-        }
+    """Generate a health-related joke with retry logic"""
+    max_retries = 3
+    retry_delay = 1  # seconds
+    
+    for attempt in range(max_retries):
+        try:
+            topic = state.get("context", {}).get("topic", "general health")
+            chain = (
+                {"input": lambda x: f"Generate a health joke about {topic}"}
+                | HEALTH_JOKE_PROMPT
+                | state["llm"]
+            )
+            response = await chain.ainvoke(state)
+            
+            # Validate response
+            if not response or not response.content:
+                raise ValueError("Empty response from LLM")
+                
+            return {
+                "messages": [AIMessage(content=response.content)],
+                "needs_more_info": False,
+                "followup_question": None,
+                "llm": state["llm"],
+                "user_id": state.get("user_id"),
+                "conversation_id": state.get("conversation_id"),
+                "context": state.get("context", {})
+            }
+        except Exception as e:
+            logger.error(f"Error generating health joke (attempt {attempt + 1}/{max_retries}): {str(e)}", exc_info=True)
+            if attempt < max_retries - 1:
+                import asyncio
+                await asyncio.sleep(retry_delay)
+                continue
+            else:
+                # Fallback jokes for when the LLM fails
+                fallback_jokes = [
+                    "Why did the doctor carry a red pen? In case they needed to draw blood!",
+                    "What did the grape say when it got stepped on? Nothing, it just let out a little wine!",
+                    "Why did the germ cross the microscope? To get to the other slide!",
+                    "What's the best exercise for your heart? Lifting someone else's spirits!",
+                    "Why did the skeleton go to the party alone? Because he had no body to go with him!"
+                ]
+                import random
+                fallback_joke = random.choice(fallback_jokes)
+                return {
+                    "messages": [AIMessage(content=fallback_joke)],
+                    "needs_more_info": False,
+                    "followup_question": None,
+                    "llm": state["llm"],
+                    "user_id": state.get("user_id"),
+                    "conversation_id": state.get("conversation_id"),
+                    "context": state.get("context", {})
+                }

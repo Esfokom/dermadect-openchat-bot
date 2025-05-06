@@ -171,7 +171,7 @@ class GameAgent:
         self.game_service = GameService()
         self.llm = ChatGoogleGenerativeAI(
             model="gemini-2.0-flash",
-            temperature=0.7,
+            temperature=0.9,
             max_output_tokens=2048,
             google_api_key=Config.GEMINI_API_KEY,
             convert_system_message_to_human=True
