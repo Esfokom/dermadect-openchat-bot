@@ -1,5 +1,4 @@
 import { BotClient } from "@open-ic/openchat-botclient-ts";
-import { ChatEvent } from "@open-ic/openchat-botclient-ts/lib/typebox/typebox";
 import { Response, Request } from "express";
 import axios from "axios";
 
