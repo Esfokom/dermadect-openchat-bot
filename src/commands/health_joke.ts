@@ -1,14 +1,12 @@
 import { BotClient } from "@open-ic/openchat-botclient-ts";
 import { Response, Request } from "express";
-import axios from "axios";
+import { getHealthJoke } from "../services/basicResponses";
 
 export default async function HealthJoke(req: Request, res: Response, client: BotClient) {
-
-    const response = await axios.get("https://dermadect-oc-fastapi.vercel.app/health-joke");
-    const responseMsg = response.data.response;
-    console.log(responseMsg);
+    const responseMsg = getHealthJoke();
     const final = await client.createTextMessage(responseMsg);
     final.setFinalised(true);
+
     client
         .sendMessage(final)
         .then(() => console.log("Message sent successfully"))

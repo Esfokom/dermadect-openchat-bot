@@ -1,0 +1,7 @@
+import { getHealthTip } from "../basicResponses";
+
+export const handlePrompt = (message: string) => {
+    let responseMsg = "I understand you're asking about: " + message + "\n\n";
+    responseMsg += "Here's a general health tip: " + getHealthTip();
+    return responseMsg;
+}; 
