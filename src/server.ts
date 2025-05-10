@@ -10,6 +10,10 @@ import { handleGame } from "./services/game/handler";
 import { handleHealthTip } from "./services/health-tip/handler";
 import { handleHealthJoke } from "./services/health-joke/handler";
 import { getSimpleResponse } from "./services/basicResponses";
+import { initializeFirebase } from "./config/firebase";
+
+// Initialize Firebase
+initializeFirebase();
 
 const app = express();
 app.use(cors());
@@ -64,7 +68,7 @@ app.post("/dev/game", async (req: Request, res: Response): Promise<void> => {
             res.status(400).json({ error: "userId is required" });
             return;
         }
-        const response = handleGame(userId, message);
+        const response = await handleGame(userId, message);
         res.status(200).json({ response });
     } catch (error) {
         res.status(500).json({ error: "Internal Server Error" });

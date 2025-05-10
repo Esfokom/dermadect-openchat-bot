@@ -4,7 +4,7 @@ import { handleGame } from "../services/game/handler";
 
 export default async function Game(req: Request, res: Response, client: BotClient) {
     const message = (client.command?.args[0].value as { String: string }).String;
-    const responseMsg = handleGame(client.initiator || "", message);
+    const responseMsg = await handleGame(client.initiator || "", message);
 
     const final = await client.createTextMessage(responseMsg);
     final.setFinalised(true);

@@ -8,6 +8,7 @@ export default async function Prompt(req: Request, res: Response, client: BotCli
 
     const responseMsg = handlePrompt(message);
     const final = await client.createTextMessage(responseMsg);
+
     final.setFinalised(true);
 
     client
