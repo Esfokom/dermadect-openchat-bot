@@ -20,10 +20,10 @@ type AgentState = {
 };
 
 // Global agent state
-let agentState: AgentState = {
-    stage: 'idle',
-    currentQuestion: ''
-};
+// let agentState: AgentState = {
+//     stage: 'idle',
+//     currentQuestion: ''
+// };
 
 export const handleGameCommand = async (userId: string, command: string): Promise<string> => {
     console.log('handleGameCommand', userId, command);
@@ -96,9 +96,25 @@ async function handleStartCommand(userId: string): Promise<string> {
     const currentState = user.gameState || 'idle';
     const currentQuestion = user.currentQuestion || '';
 
+    const getSettingsMessage = () => `Let's set up your new game! Please provide your settings in this format:
+topic, difficulty, number of questions
+
+For example:
+- "general health, medium, 5"
+- "dermatology, easy, 3"
+- "skin care, hard, 10"
+
+Valid difficulties: easy, medium, hard
+Number of questions must be a positive number.
+
+Or type 'default' to use your current settings:
+- Topic: ${user.defaultTopic}
+- Difficulty: ${user.defaultDifficulty}
+- Questions: ${user.defaultNumQuestions}`;
+
     switch (currentState) {
         case 'idle':
-            const idleMessage = `Let's set up your new game!\nPlease provide the following settings (or type 'default' to use your defaults):\n1. Topic (default: ${user.defaultTopic})\n2. Difficulty (easy/medium/hard, default: ${user.defaultDifficulty})\n3. Number of questions (default: ${user.defaultNumQuestions})\n\nYou can provide all settings at once in this format:\ntopic: [your topic]\ndifficulty: [easy/medium/hard]\nquestions: [number]`;
+            const idleMessage = getSettingsMessage();
             await firestoreService.updateUserGameState(userId, {
                 gameState: 'collecting_settings',
                 currentQuestion: idleMessage
@@ -112,16 +128,10 @@ async function handleStartCommand(userId: string): Promise<string> {
             return currentQuestion;
 
         case 'awaiting_yes_no':
-            await firestoreService.updateUserGameState(userId, {
-                currentQuestion: currentQuestion
-            });
-            return currentQuestion;
-
-        case 'in_progress':
             if (user.currentGameSessionId) {
                 const currentSession = await firestoreService.getGameSession(user.currentGameSessionId);
                 if (currentSession && !currentSession.completed) {
-                    const yesNoMessage = 'You have a pending game which has not been completed. Do you want to abandon it? (y/n)';
+                    const yesNoMessage = 'You have an active game session. Do you want to continue with your current game? Please respond with exactly "yes" or "no" (or "y"/"n").';
                     await firestoreService.updateUserGameState(userId, {
                         gameState: 'awaiting_yes_no',
                         currentQuestion: yesNoMessage
@@ -129,15 +139,35 @@ async function handleStartCommand(userId: string): Promise<string> {
                     return yesNoMessage;
                 }
             }
-            const settingsMessage = `Let's set up your new game!\nPlease provide the following settings (or type 'default' to use your defaults):\n1. Topic (default: ${user.defaultTopic})\n2. Difficulty (easy/medium/hard, default: ${user.defaultDifficulty})\n3. Number of questions (default: ${user.defaultNumQuestions})\n\nYou can provide all settings at once in this format:\ntopic: [your topic]\ndifficulty: [easy/medium/hard]\nquestions: [number]`;
+            // If no active session, proceed to settings collection
+            const newSettingsMessage = getSettingsMessage();
             await firestoreService.updateUserGameState(userId, {
                 gameState: 'collecting_settings',
-                currentQuestion: settingsMessage
+                currentQuestion: newSettingsMessage
             });
-            return settingsMessage;
+            return newSettingsMessage;
+
+        case 'in_progress':
+            if (user.currentGameSessionId) {
+                const currentSession = await firestoreService.getGameSession(user.currentGameSessionId);
+                if (currentSession && !currentSession.completed) {
+                    const yesNoMessage = 'You have an active game session. Do you want to continue with your current game? Please respond with exactly "yes" or "no" (or "y"/"n").';
+                    await firestoreService.updateUserGameState(userId, {
+                        gameState: 'awaiting_yes_no',
+                        currentQuestion: yesNoMessage
+                    });
+                    return yesNoMessage;
+                }
+            }
+            const progressSettingsMessage = getSettingsMessage();
+            await firestoreService.updateUserGameState(userId, {
+                gameState: 'collecting_settings',
+                currentQuestion: progressSettingsMessage
+            });
+            return progressSettingsMessage;
 
         default:
-            const defaultMessage = `Let's set up your new game!\nPlease provide the following settings (or type 'default' to use your defaults):\n1. Topic (default: ${user.defaultTopic})\n2. Difficulty (easy/medium/hard, default: ${user.defaultDifficulty})\n3. Number of questions (default: ${user.defaultNumQuestions})\n\nYou can provide all settings at once in this format:\ntopic: [your topic]\ndifficulty: [easy/medium/hard]\nquestions: [number]`;
+            const defaultMessage = getSettingsMessage();
             await firestoreService.updateUserGameState(userId, {
                 gameState: 'collecting_settings',
                 currentQuestion: defaultMessage
@@ -147,47 +177,68 @@ async function handleStartCommand(userId: string): Promise<string> {
 }
 
 async function handleYesNoResponse(userId: string, input: string): Promise<string> {
-    if (!agentState.currentSessionId) {
-        agentState = {
-            stage: 'idle',
+    const user = await firestoreService.getOrCreateUser(userId);
+
+    if (!user.currentGameSessionId) {
+        await firestoreService.updateUserGameState(userId, {
+            gameState: 'idle',
             currentQuestion: "Session error. Please start a new game."
-        };
-        return agentState.currentQuestion;
+        });
+        return "Session error. Please start a new game.";
     }
 
     if (!input) {
-        return agentState.currentQuestion;
+        return user.currentQuestion || "Please respond with 'yes' or 'no'.";
     }
 
     if (/^(y|yes)$/i.test(input.trim())) {
-        // Abandon current game and start collecting settings
-        await firestoreService.updateUser(userId, { currentGameSessionId: null });
-        const user = await firestoreService.getOrCreateUser(userId);
-
-        agentState = {
-            stage: 'collecting_settings',
-            currentQuestion: `Let's set up your new game!\nPlease provide the following settings (or type 'default' to use your defaults):\n1. Topic (default: ${user.defaultTopic})\n2. Difficulty (easy/medium/hard, default: ${user.defaultDifficulty})\n3. Number of questions (default: ${user.defaultNumQuestions})\n\nYou can provide all settings at once in this format:\ntopic: [your topic]\ndifficulty: [easy/medium/hard]\nquestions: [number]`,
-            settings: {}
-        };
-
-        return agentState.currentQuestion;
-    } else if (/^(n|no)$/i.test(input.trim())) {
-        const session = await firestoreService.getGameSession(agentState.currentSessionId);
+        // Continue with existing game
+        const session = await firestoreService.getGameSession(user.currentGameSessionId);
         if (!session) {
-            agentState = {
-                stage: 'idle',
+            await firestoreService.updateUserGameState(userId, {
+                gameState: 'idle',
                 currentQuestion: "Session error. Please start a new game."
-            };
-            return agentState.currentQuestion;
+            });
+            return "Session error. Please start a new game.";
         }
-        agentState = {
-            stage: 'in_progress',
-            currentQuestion: await getResumeMessage(session),
-            currentSessionId: session.sessionId
-        };
-        return agentState.currentQuestion;
+
+        // Update user state to in_progress
+        await firestoreService.updateUserGameState(userId, {
+            gameState: 'in_progress',
+            currentQuestion: await getResumeMessage(session)
+        });
+
+        return await getResumeMessage(session);
+    } else if (/^(n|no)$/i.test(input.trim())) {
+        // Abandon current game and start collecting settings
+        await firestoreService.updateUser(userId, {
+            currentGameSessionId: null
+        });
+
+        const settingsMessage = `Please provide your settings in this format:
+topic, difficulty, number of questions
+
+For example:
+- "general health, medium, 5"
+- "dermatology, easy, 3"
+- "skin care, hard, 10"
+
+Valid difficulties: easy, medium, hard
+Number of questions must be a positive number.
+
+Or type 'default' to use your current settings:
+- Topic: ${user.defaultTopic}
+- Difficulty: ${user.defaultDifficulty}
+- Questions: ${user.defaultNumQuestions}`;
+
+        await firestoreService.updateUserGameState(userId, {
+            gameState: 'collecting_settings',
+            currentQuestion: settingsMessage
+        });
+
+        return settingsMessage;
     } else {
-        return agentState.currentQuestion;
+        return user.currentQuestion || "Please respond with exactly 'yes' or 'no' (or 'y'/'n').";
     }
 }
 
@@ -195,7 +246,26 @@ async function handleSettingsInput(userId: string, input: string): Promise<strin
     const user = await firestoreService.getOrCreateUser(userId);
 
     if (!input) {
-        return agentState.currentQuestion;
+        const settingsMessage = `Please provide your settings in this format:
+topic, difficulty, number of questions
+
+For example:
+- "general health, medium, 5"
+- "dermatology, easy, 3"
+- "skin care, hard, 10"
+
+Valid difficulties: easy, medium, hard
+Number of questions must be a positive number.
+
+Or type 'default' to use your current settings:
+- Topic: ${user.defaultTopic}
+- Difficulty: ${user.defaultDifficulty}
+- Questions: ${user.defaultNumQuestions}`;
+
+        await firestoreService.updateUserGameState(userId, {
+            currentQuestion: settingsMessage
+        });
+        return settingsMessage;
     }
 
     if (input.trim().toLowerCase() === 'default') {
@@ -214,121 +284,162 @@ async function handleSettingsInput(userId: string, input: string): Promise<strin
             stage: 'in_progress'
         };
 
-        const message = await generateAndStartQuiz(newSessionId, newSession.numQuestions, newSession.topic, newSession.difficulty);
-        // await firestoreService.createGameSession(newSession);
-        await firestoreService.updateUser(userId, { currentGameSessionId: newSessionId, gameState: 'in_progress' });
-
-        agentState = {
-            stage: 'in_progress',
-            currentQuestion: message,
-            currentSessionId: newSessionId
-        };
+        const message = await generateAndStartQuiz(newSessionId, newSession.numQuestions, newSession.topic, newSession.difficulty, userId);
+        await firestoreService.updateUser(userId, {
+            currentGameSessionId: newSessionId,
+            gameState: 'in_progress',
+            currentQuestion: message
+        });
 
         return message;
     }
 
-    // Parse settings from input
-    const settings = parseSettingsInput(input);
-    if (!settings) {
-        return agentState.currentQuestion;
-    }
+    // Use LLM to parse the input
+    const model = new ChatGoogleGenerativeAI({
+        model: "gemini-2.0-flash",
+        temperature: 0.7,
+        apiKey: process.env.GEMINI_API_KEY
+    });
 
-    // Validate settings
-    if (!settings.topic || !settings.difficulty || !settings.numQuestions) {
-        return agentState.currentQuestion;
-    }
+    const prompt = PromptTemplate.fromTemplate(
+        `Parse the following input into a JSON object with fields: topic, difficulty, and numQuestions.
+The input is in the format: "topic, difficulty, number of questions"
+Valid difficulties are: easy, medium, hard
+If any field cannot be parsed or is invalid, return null for that field.
+Example valid input: "general health, medium, 5"
+Example output: {{"topic": "general health", "difficulty": "medium", "numQuestions": 5}}
 
-    const validDiff = ['easy', 'medium', 'hard'];
-    if (!validDiff.includes(settings.difficulty.toLowerCase())) {
-        return agentState.currentQuestion;
-    }
+Input: {input}
 
-    if (isNaN(settings.numQuestions) || settings.numQuestions <= 0) {
-        return agentState.currentQuestion;
-    }
+Return only the JSON object.`
+    );
 
-    // Create new session with validated settings
-    const newSessionId = uuidv4();
-    const newSession: GameSession = {
-        sessionId: newSessionId,
-        userId,
-        questions: [],
-        userAnswers: [],
-        currentQuestion: 0,
-        difficulty: settings.difficulty.toLowerCase(),
-        topic: settings.topic,
-        numQuestions: settings.numQuestions,
-        completed: false,
-        stage: 'in_progress'
-    };
+    const outputParser = new StringOutputParser();
+    const chain = prompt.pipe(model).pipe(outputParser);
 
-    const message = await generateAndStartQuiz(newSessionId, newSession.numQuestions, newSession.topic, newSession.difficulty);
-    // await firestoreService.createGameSession(newSession);
-    await firestoreService.updateUser(userId, { currentGameSessionId: newSessionId });
+    try {
+        const response = await chain.invoke({ input: input.trim() });
 
-    agentState = {
-        stage: 'in_progress',
-        currentQuestion: message,
-        currentSessionId: newSessionId
-    };
+        // Clean the response by removing markdown code block markers
+        const cleanedResponse = response
+            .replace(/```json\n?/g, '')
+            .replace(/```\n?/g, '')
+            .trim();
 
-
-    return message;
-}
-
-function parseSettingsInput(input: string): { topic?: string; difficulty?: string; numQuestions?: number } | null {
-    const lines = input.split('\n').map(line => line.trim());
-    const settings: { topic?: string; difficulty?: string; numQuestions?: number } = {};
-
-    for (const line of lines) {
-        const [key, value] = line.split(':').map(part => part.trim());
-        if (!key || !value) continue;
-
-        switch (key.toLowerCase()) {
-            case 'topic':
-                settings.topic = value;
-                break;
-            case 'difficulty':
-                settings.difficulty = value;
-                break;
-            case 'questions':
-                settings.numQuestions = parseInt(value);
-                break;
+        let settings;
+        try {
+            settings = JSON.parse(cleanedResponse);
+        } catch (parseError) {
+            console.error('Error parsing JSON:', parseError);
+            console.error('Raw response:', response);
+            console.error('Cleaned response:', cleanedResponse);
+            const errorMessage = "I couldn't understand your settings. Please provide them in this format: topic, difficulty, number of questions\nExample: general health, medium, 5";
+            await firestoreService.updateUserGameState(userId, {
+                currentQuestion: errorMessage
+            });
+            return errorMessage;
         }
-    }
 
-    return settings;
+        // Check if any field is null or invalid
+        if (!settings || settings.topic === null || settings.difficulty === null || settings.numQuestions === null) {
+            const errorMessage = "I couldn't understand your settings. Please provide them in this format: topic, difficulty, number of questions\nExample: general health, medium, 5";
+            await firestoreService.updateUserGameState(userId, {
+                currentQuestion: errorMessage
+            });
+            return errorMessage;
+        }
+
+        // Validate settings
+        const validDiff = ['easy', 'medium', 'hard'];
+        if (!validDiff.includes(settings.difficulty.toLowerCase())) {
+            const errorMessage = "Invalid difficulty. Please use: easy, medium, or hard";
+            await firestoreService.updateUserGameState(userId, {
+                currentQuestion: errorMessage
+            });
+            return errorMessage;
+        }
+
+        if (isNaN(settings.numQuestions) || settings.numQuestions <= 0) {
+            const errorMessage = "Invalid number of questions. Please provide a positive number";
+            await firestoreService.updateUserGameState(userId, {
+                currentQuestion: errorMessage
+            });
+            return errorMessage;
+        }
+
+        // Create new session with validated settings
+        const newSessionId = uuidv4();
+        const newSession: GameSession = {
+            sessionId: newSessionId,
+            userId,
+            questions: [],
+            userAnswers: [],
+            currentQuestion: 0,
+            difficulty: settings.difficulty.toLowerCase(),
+            topic: settings.topic,
+            numQuestions: settings.numQuestions,
+            completed: false,
+            stage: 'in_progress'
+        };
+
+        const message = await generateAndStartQuiz(newSessionId, newSession.numQuestions, newSession.topic, newSession.difficulty, userId);
+        await firestoreService.updateUser(userId, {
+            currentGameSessionId: newSessionId,
+            gameState: 'in_progress',
+            currentQuestion: message
+        });
+
+        return message;
+    } catch (error) {
+        console.error('Error processing settings:', error);
+        const errorMessage = "Sorry, there was an error processing your settings. Please try again.";
+        await firestoreService.updateUserGameState(userId, {
+            currentQuestion: errorMessage
+        });
+        return errorMessage;
+    }
 }
 
 async function handleGameProgress(userId: string, input: string): Promise<string> {
-    if (!agentState.currentSessionId) {
-        agentState = {
-            stage: 'idle',
+    const user = await firestoreService.getOrCreateUser(userId);
+
+    if (!user.currentGameSessionId) {
+        await firestoreService.updateUserGameState(userId, {
+            gameState: 'idle',
             currentQuestion: "Session error. Please start a new game."
-        };
-        return agentState.currentQuestion;
+        });
+        return "Session error. Please start a new game.";
     }
 
-    const session = await firestoreService.getGameSession(agentState.currentSessionId);
+    const session = await firestoreService.getGameSession(user.currentGameSessionId);
     if (!session) {
-        agentState = {
-            stage: 'idle',
+        await firestoreService.updateUserGameState(userId, {
+            gameState: 'idle',
             currentQuestion: "Session error. Please start a new game."
-        };
-        return agentState.currentQuestion;
+        });
+        return "Session error. Please start a new game.";
     }
 
     // Handle answer
     const currentQ = session.questions[session.currentQuestion];
     if (!currentQ) {
-        // Game is complete
+        // Game is complete - calculate score
+        const correctAnswers = session.userAnswers.filter((answer, index) =>
+            answer === session.questions[index].correctIndex
+        ).length;
+
+        const score = Math.round((correctAnswers / session.questions.length) * 100);
+        const completionMessage = `Game completed!\nYou answered ${correctAnswers} out of ${session.questions.length} questions correctly.\nYour score: ${score}%\n\nUse /game start to begin a new game.`;
+
+        // Update session and user state
         await firestoreService.updateGameSession(session.sessionId, { completed: true });
-        await firestoreService.updateUser(userId, { currentGameSessionId: null });
-        agentState = {
-            stage: 'idle',
-            currentQuestion: "Game completed! Use /game start to begin a new game."
-        };
-        return agentState.currentQuestion;
+        await firestoreService.updateUser(userId, {
+            currentGameSessionId: null,
+            gameState: 'idle',
+            currentQuestion: completionMessage
+        });
+
+        return completionMessage;
     }
 
     // Process answer
@@ -350,19 +461,32 @@ async function handleGameProgress(userId: string, input: string): Promise<string
     // Get next question or end game
     const nextQ = session.questions[session.currentQuestion + 1];
     if (!nextQ) {
-        // Game is complete
+        // Game is complete - calculate score
+        const correctAnswers = userAnswers.filter((answer, index) =>
+            answer === session.questions[index].correctIndex
+        ).length;
+
+        const score = Math.round((correctAnswers / session.questions.length) * 100);
+        const completionMessage = `Game completed!\nYou answered ${correctAnswers} out of ${session.questions.length} questions correctly.\nYour score: ${score}%\n\nUse /game start to begin a new game.`;
+
+        // Update session and user state
         await firestoreService.updateGameSession(session.sessionId, { completed: true });
-        await firestoreService.updateUser(userId, { currentGameSessionId: null });
-        agentState = {
-            stage: 'idle',
-            currentQuestion: "Game completed! Use /game start to begin a new game."
-        };
-        return agentState.currentQuestion;
+        await firestoreService.updateUser(userId, {
+            currentGameSessionId: null,
+            gameState: 'idle',
+            currentQuestion: completionMessage
+        });
+
+        return completionMessage;
     }
 
     // Show next question
     const message = `Your answer was ${isCorrect ? 'correct' : 'incorrect'}.\n\nQuestion ${session.currentQuestion + 2}:\n${nextQ.question}\nOptions:\n${nextQ.options.map((opt, i) => `${i + 1}. ${opt}`).join('\n')}`;
-    agentState.currentQuestion = message;
+
+    await firestoreService.updateUserGameState(userId, {
+        currentQuestion: message
+    });
+
     return message;
 }
 
@@ -372,7 +496,7 @@ async function getResumeMessage(session: GameSession): Promise<string> {
     return `Question ${session.currentQuestion + 1}:\n${q.question}\nOptions:\n${q.options.map((opt, i) => `${i + 1}. ${opt}`).join('\n')}`;
 }
 
-async function generateAndStartQuiz(sessionId: string, numQuestions: number, topic: string, difficulty: string): Promise<string> {
+async function generateAndStartQuiz(sessionId: string, numQuestions: number, topic: string, difficulty: string, userId: string): Promise<string> {
     const model = new ChatGoogleGenerativeAI({
         model: "gemini-2.0-flash",
         temperature: 0.7,
@@ -422,7 +546,7 @@ async function generateAndStartQuiz(sessionId: string, numQuestions: number, top
         // Create initial game session document with the questions
         const initialSession: GameSession = {
             sessionId,
-            userId: '', // This will be set by the caller
+            userId: userId, // Use the passed userId
             questions: questions, // Include the questions here
             userAnswers: [],
             currentQuestion: 0,
