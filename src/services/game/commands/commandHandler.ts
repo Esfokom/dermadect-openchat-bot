@@ -285,10 +285,13 @@ Or type 'default' to use your current settings:
         };
 
         const message = await generateAndStartQuiz(newSessionId, newSession.numQuestions, newSession.topic, newSession.difficulty, userId);
+
+        // Update user with new session ID and append to gameSessions array
         await firestoreService.updateUser(userId, {
             currentGameSessionId: newSessionId,
             gameState: 'in_progress',
-            currentQuestion: message
+            currentQuestion: message,
+            gameSessions: [...(user.gameSessions || []), newSessionId]
         });
 
         return message;
@@ -367,6 +370,15 @@ Return only the JSON object.`
             return errorMessage;
         }
 
+        // Add validation for maximum number of questions
+        if (settings.numQuestions > 10) {
+            const errorMessage = "The maximum number of questions allowed is 10. Please provide a number between 1 and 10.";
+            await firestoreService.updateUserGameState(userId, {
+                currentQuestion: errorMessage
+            });
+            return errorMessage;
+        }
+
         // Create new session with validated settings
         const newSessionId = uuidv4();
         const newSession: GameSession = {
@@ -383,10 +395,13 @@ Return only the JSON object.`
         };
 
         const message = await generateAndStartQuiz(newSessionId, newSession.numQuestions, newSession.topic, newSession.difficulty, userId);
+
+        // Update user with new session ID and append to gameSessions array
         await firestoreService.updateUser(userId, {
             currentGameSessionId: newSessionId,
             gameState: 'in_progress',
-            currentQuestion: message
+            currentQuestion: message,
+            gameSessions: [...(user.gameSessions || []), newSessionId]
         });
 
         return message;
@@ -427,16 +442,22 @@ async function handleGameProgress(userId: string, input: string): Promise<string
         const correctAnswers = session.userAnswers.filter((answer, index) =>
             answer === session.questions[index].correctIndex
         ).length;
+        const wrongAnswers = session.questions.length - correctAnswers;
 
         const score = Math.round((correctAnswers / session.questions.length) * 100);
         const completionMessage = `Game completed!\nYou answered ${correctAnswers} out of ${session.questions.length} questions correctly.\nYour score: ${score}%\n\nUse /game start to begin a new game.`;
 
         // Update session and user state
         await firestoreService.updateGameSession(session.sessionId, { completed: true });
+
+        // Update user statistics
         await firestoreService.updateUser(userId, {
             currentGameSessionId: null,
             gameState: 'idle',
-            currentQuestion: completionMessage
+            currentQuestion: completionMessage,
+            totalQuestionsAnswered: (user.totalQuestionsAnswered || 0) + session.questions.length,
+            totalCorrectAnswers: (user.totalCorrectAnswers || 0) + correctAnswers,
+            totalWrongAnswers: (user.totalWrongAnswers || 0) + wrongAnswers
         });
 
         return completionMessage;
@@ -465,16 +486,22 @@ async function handleGameProgress(userId: string, input: string): Promise<string
         const correctAnswers = userAnswers.filter((answer, index) =>
             answer === session.questions[index].correctIndex
         ).length;
+        const wrongAnswers = session.questions.length - correctAnswers;
 
         const score = Math.round((correctAnswers / session.questions.length) * 100);
         const completionMessage = `Game completed!\nYou answered ${correctAnswers} out of ${session.questions.length} questions correctly.\nYour score: ${score}%\n\nUse /game start to begin a new game.`;
 
         // Update session and user state
         await firestoreService.updateGameSession(session.sessionId, { completed: true });
+
+        // Update user statistics
         await firestoreService.updateUser(userId, {
             currentGameSessionId: null,
             gameState: 'idle',
-            currentQuestion: completionMessage
+            currentQuestion: completionMessage,
+            totalQuestionsAnswered: (user.totalQuestionsAnswered || 0) + session.questions.length,
+            totalCorrectAnswers: (user.totalCorrectAnswers || 0) + correctAnswers,
+            totalWrongAnswers: (user.totalWrongAnswers || 0) + wrongAnswers
         });
 
         return completionMessage;

@@ -9,6 +9,8 @@ export interface User {
     questionsAnswered: number;
     wrongQuestions: string[];
     totalQuestionsAnswered: number;
+    totalCorrectAnswers: number;
+    totalWrongAnswers: number;
     defaultDifficulty?: string;
     defaultNumQuestions?: number;
     defaultTopic?: string;
@@ -95,6 +97,8 @@ export class GameFirestoreService {
             questionsAnswered: 0,
             wrongQuestions: [],
             totalQuestionsAnswered: 0,
+            totalCorrectAnswers: 0,
+            totalWrongAnswers: 0,
             defaultDifficulty: 'medium',
             defaultNumQuestions: 5,
             defaultTopic: 'general healthcare',
