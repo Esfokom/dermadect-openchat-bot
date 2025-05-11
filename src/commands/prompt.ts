@@ -1,12 +1,13 @@
 import { BotClient } from "@open-ic/openchat-botclient-ts";
 import { Response, Request } from "express";
-import { handlePrompt } from "../services/prompt/handler";
+import { handleHealthcareMessage } from "../services/healthcare/handler";
 
 export default async function Prompt(req: Request, res: Response, client: BotClient) {
     const message = (client.command?.args[0].value as { String: string }).String;
     console.log(message);
 
-    const responseMsg = handlePrompt(message);
+    const responseMsg = await handleHealthcareMessage(client.initiator!, message);
+    // const responseMsg = handlePrompt(message);
     const final = await client.createTextMessage(responseMsg);
 
     final.setFinalised(true);

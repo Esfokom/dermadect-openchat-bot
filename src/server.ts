@@ -5,12 +5,12 @@ import cors from "cors";
 import { accessTokenNotFound, BadRequestError, BotClient, BotClientFactory } from "@open-ic/openchat-botclient-ts";
 import { WithBotClient } from "./types";
 import executeCommand from "./handlers/executeCommand";
-import { handlePrompt } from "./services/prompt/handler";
 import { handleGame } from "./services/game/handler";
 import { handleHealthTip } from "./services/health-tip/handler";
 import { handleHealthJoke } from "./services/health-joke/handler";
 import { getSimpleResponse } from "./services/basicResponses";
 import { initializeFirebase } from "./config/firebase";
+import { handleHealthcareMessage } from "./services/healthcare/handler";
 
 // Initialize Firebase
 initializeFirebase();
@@ -54,7 +54,8 @@ app.post("/dev/prompt", async (req: Request, res: Response): Promise<void> => {
             res.status(400).json({ error: "userId and message are required" });
             return;
         }
-        const response = handlePrompt(message);
+        const response = await handleHealthcareMessage(userId, message);
+        // const response = handlePrompt(message);
         res.status(200).json({ response });
     } catch (error) {
         res.status(500).json({ error: "Internal Server Error" });
